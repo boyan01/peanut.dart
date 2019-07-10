@@ -1,5 +1,8 @@
-[![Pub Package](https://img.shields.io/pub/v/peanut.svg)](https://pub.dev/packages/peanut)
-[![Build Status](https://travis-ci.org/kevmoo/peanut.dart.svg?branch=master)](https://travis-ci.org/kevmoo/peanut.dart)
+# What is the difference of source PEANUT.dart
+
+Remove git environment requirements, the product file will be output to .peanutOutput
+
+---
 
 Do you ever want to `pub run build_runner build` into another branch? This is
 your ticket.
