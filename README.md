@@ -10,7 +10,7 @@ your ticket.
 ## Install
 
 ```
-$ pub global activate peanut
+$ pub global activate -sgit https://github.com/boyan01/peanut.dart.git
 ```
 
 ## Run
