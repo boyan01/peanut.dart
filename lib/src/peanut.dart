@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:git/git.dart';
 import 'package:io/ansi.dart' as ansi;
 import 'package:path/path.dart' as p;
 
@@ -11,7 +10,6 @@ import 'helpers.dart';
 import 'options.dart';
 import 'peanut_exception.dart';
 import 'utils.dart';
-import 'version.dart';
 import 'webdev.dart';
 
 export 'options.dart';
@@ -21,22 +19,6 @@ export 'webdev.dart' show PackageException;
 Future<void> run({Options options, String workingDir}) async {
   options ??= const Options();
   workingDir ??= p.current;
-
-  final isGitDir = await GitDir.isGitDir(workingDir);
-
-  if (!isGitDir) {
-    throw PeanutException('Not a git directory: $workingDir');
-  }
-
-  final gitDir = await GitDir.fromExisting(workingDir, allowSubdirectory: true);
-
-  // current branch cannot be targetBranch
-  final currentBranch = await gitDir.currentBranch();
-
-  if (currentBranch.branchName == options.branch) {
-    throw PeanutException(
-        'Cannot update the current branch "${options.branch}".');
-  }
 
   if (options.directories.isEmpty) {
     throw PeanutException('At least one directory must be provided.');
@@ -89,13 +71,16 @@ Future<void> run({Options options, String workingDir}) async {
     print(ansi.wrapWith('\n*** Dry run ***', [ansi.yellow, ansi.styleBold]));
   }
 
-  final secondsSinceEpoch = DateTime.now().toUtc().millisecondsSinceEpoch;
-
   final outputDirMap = outputDirectoryMap(targetDirs);
 
   // create a temp dir to dump 'pub build' output to
-  final tempDir =
-      await Directory.systemTemp.createTemp('peanut.$secondsSinceEpoch.');
+  //#todo can be config
+  final tempDir = Directory('${Directory.current.path}/.peanutOutput/');
+  if (tempDir.existsSync()) {
+    //delete build #fixme ask first
+    tempDir.deleteSync(recursive: true);
+  }
+  tempDir.createSync();
 
   try {
     final entriesList = targetDirs.entries.toList(growable: false);
@@ -181,42 +166,9 @@ Directories:
 ''';
       }
     }
-
-    if (options.sourceBranchInfo) {
-      final currentBranch = await gitDir.currentBranch();
-      var commitInfo = currentBranch.sha;
-      if (!await gitDir.isWorkingTreeClean()) {
-        commitInfo = '$commitInfo (dirty)';
-      }
-      message = '''
-$message
-
-Branch: ${currentBranch.branchName}
-Commit: $commitInfo
-
-package:peanut $packageVersion''';
-    }
-
-    final commit = await gitDir.updateBranchWithDirectoryContents(
-        options.branch, tempDir.path, message);
-
-    print('');
-    if (commit == null) {
-      print(ansi.wrapWith(
-        'No change in branch "${options.branch}". No commit created.\n',
-        [ansi.yellow, ansi.styleBold],
-      ));
-    } else {
-      final indentedMessage =
-          LineSplitter.split(message).map((line) => '  $line\n').join();
-      final shortSha = commit.treeSha.substring(0, 10);
-      print(ansi.styleBold.wrap(
-        'Branch "${options.branch}" was updated with commit $shortSha',
-      ));
-      print(indentedMessage);
-    }
+    print('\n build success : ${tempDir.path}');
   } finally {
-    await tempDir.delete(recursive: true);
+    // await tempDir.delete(recursive: true);
   }
 }
 
